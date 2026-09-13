@@ -7,10 +7,11 @@ Static Cloudflare Worker that publishes the Claude Code handoff pack as HTML pag
 ```bash
 npm install
 python3 scripts/verify.py
-npm run deploy
+bash scripts/deploy.sh   # requires CLOUDFLARE_API_TOKEN
 ```
 
-Worker name: `claude-code-handoff`
+Worker name: `claude-code-handoff`  
+Expected permanent URL: `https://claude-code-handoff.<your-workers-subdomain>.workers.dev`
 
 ## Layout
 
