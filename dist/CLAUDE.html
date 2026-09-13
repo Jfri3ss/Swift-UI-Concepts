@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Project instructions for Claude Code — Claude Code Handoff</title>
+  <link rel="stylesheet" href="/styles.css"/>
+</head>
+<body>
+  <div class="bg"></div>
+  <header class="top">
+    <a class="brand" href="/">Claude Code Handoff</a>
+    <nav><a href="/">Home</a><a href="/README.html">README</a><a href="/CLAUDE.html" class="active">CLAUDE</a><a href="/AGENTS.html">AGENTS</a><a href="/docs/HANDOFF.html">Handoff</a><a href="/docs/SKILLS-AND-PLUGINS.html">Skills</a><a href="/Claude-Code-Handoff.zip">Download zip</a></nav>
+  </header>
+  <main class="doc">
+<h1>Project instructions for Claude Code</h1>
+<p>You are working in a repository that uses the Claude Code Handoff Pack.</p>
+<h2>Always do</h2>
+<ol>
+<li>Read <code>docs/HANDOFF.md</code> before making large changes.</li>
+<li>Prefer small, reviewable diffs over broad rewrites.</li>
+<li>Keep secrets out of the repo; use environment variables and secret stores.</li>
+<li>After meaningful progress, update the <strong>Current state</strong> and <strong>Next actions</strong> sections in <code>docs/HANDOFF.md</code>.</li>
+<li>Run the project&#x27;s verify command before claiming done (<code>python3 scripts/verify.py</code> for this pack&#x27;s site).</li>
+</ol>
+<h2>Never do</h2>
+<ul>
+<li>Commit <code>.env</code>, API tokens, or private keys.</li>
+<li>Invent MCP server URLs — only use entries listed in <code>docs/INVENTORY.json</code>.</li>
+<li>Skip handoff notes when stopping mid-task.</li>
+</ul>
+<h2>Working style</h2>
+<ul>
+<li>Ask clarifying questions only when blocked; otherwise proceed with the safest assumption and document it in the handoff.</li>
+<li>Match existing code style and file layout.</li>
+<li>Prefer editing existing files over creating new ones.</li>
+</ul>
+<h2>Skills</h2>
+<p>Load <code>.claude/skills/working-agreements/SKILL.md</code> when coordinating multi-agent or multi-session work.</p>
+  </main>
+  <footer class="foot">
+    <p>Portable handoff pack for Claude Code and agent IDEs.</p>
+  </footer>
+</body>
+</html>

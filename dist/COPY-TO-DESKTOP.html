@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Copy to Desktop checklist — Claude Code Handoff</title>
+  <link rel="stylesheet" href="/styles.css"/>
+</head>
+<body>
+  <div class="bg"></div>
+  <header class="top">
+    <a class="brand" href="/">Claude Code Handoff</a>
+    <nav><a href="/">Home</a><a href="/README.html">README</a><a href="/CLAUDE.html">CLAUDE</a><a href="/AGENTS.html">AGENTS</a><a href="/docs/HANDOFF.html">Handoff</a><a href="/docs/SKILLS-AND-PLUGINS.html">Skills</a><a href="/Claude-Code-Handoff.zip">Download zip</a></nav>
+  </header>
+  <main class="doc">
+<h1>Copy to Desktop checklist</h1>
+<p>Use this when staging the pack on a new machine before merging into a project.</p>
+<h2>Steps</h2>
+<ol>
+<li>Download <code>Claude-Code-Handoff.zip</code> from the docs site.</li>
+<li>Unzip to <code>~/Desktop/Claude-Code-Handoff</code>.</li>
+<li>Copy these files into the target project root:</li>
+</ol>
+<p>   - <code>CLAUDE.md</code></p>
+<p>   - <code>AGENTS.md</code></p>
+<p>   - <code>.mcp.json</code></p>
+<p>   - <code>.claude/skills/working-agreements/SKILL.md</code></p>
+<p>   - <code>docs/HANDOFF.md</code></p>
+<p>   - <code>docs/SKILLS-AND-PLUGINS.md</code></p>
+<p>   - <code>docs/INVENTORY.json</code></p>
+<p>   - <code>scripts/setup-claude-code.sh</code></p>
+<ol>
+<li>From the project root, run:</li>
+</ol>
+<pre><code class="language-bash">bash scripts/setup-claude-code.sh</code></pre>
+<ol>
+<li>Edit <code>docs/HANDOFF.md</code> with the current task state.</li>
+<li>Start Claude Code (or your agent IDE) in that project.</li>
+</ol>
+<h2>Notes</h2>
+<ul>
+<li>Do not commit Desktop copies; only commit files inside the real project.</li>
+<li>After first sync, keep inventory and <code>.mcp.json</code> in lockstep.</li>
+</ul>
+  </main>
+  <footer class="foot">
+    <p>Portable handoff pack for Claude Code and agent IDEs.</p>
+  </footer>
+</body>
+</html>

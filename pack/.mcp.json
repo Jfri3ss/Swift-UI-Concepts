@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "filesystem-notes": {
+      "url": "https://mcp.example.com/filesystem-notes",
+      "disabled": true
+    },
+    "docs-search": {
+      "url": "https://mcp.example.com/docs-search",
+      "disabled": true
+    }
+  }
+}

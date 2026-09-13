@@ -1,0 +1,10 @@
+.wrangler/
+.dev.vars
+.dev.vars*
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.egg-info/
+.DS_Store

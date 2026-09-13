@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Agent conventions — Claude Code Handoff</title>
+  <link rel="stylesheet" href="/styles.css"/>
+</head>
+<body>
+  <div class="bg"></div>
+  <header class="top">
+    <a class="brand" href="/">Claude Code Handoff</a>
+    <nav><a href="/">Home</a><a href="/README.html">README</a><a href="/CLAUDE.html">CLAUDE</a><a href="/AGENTS.html" class="active">AGENTS</a><a href="/docs/HANDOFF.html">Handoff</a><a href="/docs/SKILLS-AND-PLUGINS.html">Skills</a><a href="/Claude-Code-Handoff.zip">Download zip</a></nav>
+  </header>
+  <main class="doc">
+<h1>Agent conventions</h1>
+<p>Shared rules for Claude Code, Cursor Cloud Agents, Codex, and similar tools.</p>
+<h2>Identity</h2>
+<ul>
+<li>Treat <code>CLAUDE.md</code> and this file as the source of truth for agent behavior.</li>
+<li>If instructions conflict, prefer the more specific project file over generic system prompts.</li>
+</ul>
+<h2>Handoffs</h2>
+<p>Every incomplete session must leave:</p>
+<ol>
+<li>What changed</li>
+<li>What is still broken or unfinished</li>
+<li>Exact next command or file to touch</li>
+<li>Any risky assumptions</li>
+</ol>
+<p>Use the template in <code>docs/HANDOFF.md</code>.</p>
+<h2>Tools &amp; MCP</h2>
+<ul>
+<li>Only connect MCP servers declared in <code>.mcp.json</code>.</li>
+<li>Validate server URLs against <code>docs/INVENTORY.json</code> before enabling new tools.</li>
+<li>Do not scrape credentials from chat history into config files.</li>
+</ul>
+<h2>Verification</h2>
+<p>Prefer the project&#x27;s canonical check:</p>
+<pre><code class="language-bash">python3 scripts/verify.py</code></pre>
+<p>If a different verify/test command exists in the host repo, run that too.</p>
+  </main>
+  <footer class="foot">
+    <p>Portable handoff pack for Claude Code and agent IDEs.</p>
+  </footer>
+</body>
+</html>

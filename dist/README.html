@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Claude Code Handoff Pack — Claude Code Handoff</title>
+  <link rel="stylesheet" href="/styles.css"/>
+</head>
+<body>
+  <div class="bg"></div>
+  <header class="top">
+    <a class="brand" href="/">Claude Code Handoff</a>
+    <nav><a href="/">Home</a><a href="/README.html" class="active">README</a><a href="/CLAUDE.html">CLAUDE</a><a href="/AGENTS.html">AGENTS</a><a href="/docs/HANDOFF.html">Handoff</a><a href="/docs/SKILLS-AND-PLUGINS.html">Skills</a><a href="/Claude-Code-Handoff.zip">Download zip</a></nav>
+  </header>
+  <main class="doc">
+<h1>Claude Code Handoff Pack</h1>
+<p>A portable starter kit for handing work between Claude Code sessions, Cursor agents, and teammates.</p>
+<h2>What&#x27;s inside</h2>
+<table>
+<tr><th>Path</th><th>Purpose</th></tr>
+<tr><td><code>CLAUDE.md</code></td><td>Project instructions Claude Code loads automatically</td></tr>
+<tr><td><code>AGENTS.md</code></td><td>Cross-tool agent conventions (Cursor, Codex, Claude)</td></tr>
+<tr><td><code>COPY-TO-DESKTOP.md</code></td><td>Quick copy checklist for a fresh machine</td></tr>
+<tr><td><code>docs/HANDOFF.md</code></td><td>Session handoff template</td></tr>
+<tr><td><code>docs/SKILLS-AND-PLUGINS.md</code></td><td>Skills and plugins inventory notes</td></tr>
+<tr><td><code>docs/INVENTORY.json</code></td><td>Machine-readable MCP / tool inventory</td></tr>
+<tr><td><code>.mcp.json</code></td><td>Project MCP server stubs</td></tr>
+<tr><td><code>.claude/skills/working-agreements/SKILL.md</code></td><td>Shared working-agreements skill</td></tr>
+<tr><td><code>scripts/setup-claude-code.sh</code></td><td>Bootstrap helper for Claude Code</td></tr>
+</table>
+<h2>Quick start</h2>
+<ol>
+<li>Download <a href="/Claude-Code-Handoff.zip">Claude-Code-Handoff.zip</a>.</li>
+<li>Unzip into your project root (or Desktop staging folder).</li>
+<li>Run <code>bash scripts/setup-claude-code.sh</code>.</li>
+<li>Open <code>docs/HANDOFF.md</code>, fill the current-state section, and start Claude Code.</li>
+</ol>
+<h2>Browse on the web</h2>
+<ul>
+<li><a href="/CLAUDE.html">CLAUDE.md</a></li>
+<li><a href="/AGENTS.html">AGENTS.md</a></li>
+<li><a href="/COPY-TO-DESKTOP.html">Copy to Desktop</a></li>
+<li><a href="/docs/HANDOFF.html">Handoff guide</a></li>
+<li><a href="/docs/SKILLS-AND-PLUGINS.html">Skills &amp; plugins</a></li>
+<li><a href="/docs/INVENTORY.json">Inventory JSON</a></li>
+</ul>
+<h2>Design goals</h2>
+<ul>
+<li><strong>One pack, many tools</strong> — same files work in Claude Code, Cursor, and other agent IDEs.</li>
+<li><strong>Handoff first</strong> — every session can leave a crisp next-action note.</li>
+<li><strong>Auditable MCP</strong> — <code>.mcp.json</code> URLs must match <code>docs/INVENTORY.json</code>.</li>
+</ul>
+  </main>
+  <footer class="foot">
+    <p>Portable handoff pack for Claude Code and agent IDEs.</p>
+  </footer>
+</body>
+</html>

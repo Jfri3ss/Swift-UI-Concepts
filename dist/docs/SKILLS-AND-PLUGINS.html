@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Skills and plugins — Claude Code Handoff</title>
+  <link rel="stylesheet" href="/styles.css"/>
+</head>
+<body>
+  <div class="bg"></div>
+  <header class="top">
+    <a class="brand" href="/">Claude Code Handoff</a>
+    <nav><a href="/">Home</a><a href="/README.html">README</a><a href="/CLAUDE.html">CLAUDE</a><a href="/AGENTS.html">AGENTS</a><a href="/docs/HANDOFF.html">Handoff</a><a href="/docs/SKILLS-AND-PLUGINS.html" class="active">Skills</a><a href="/Claude-Code-Handoff.zip">Download zip</a></nav>
+  </header>
+  <main class="doc">
+<h1>Skills and plugins</h1>
+<h2>Included skill: working-agreements</h2>
+<p>Path: <code>.claude/skills/working-agreements/SKILL.md</code></p>
+<p>Use when:</p>
+<ul>
+<li>Multiple agents share a repo</li>
+<li>You need a crisp handoff between sessions</li>
+<li>You are aligning on definition of done</li>
+</ul>
+<h2>Recommended Claude Code plugins</h2>
+<p>Keep this list short and explicit. Add only plugins you actually use.</p>
+<table>
+<tr><th>Plugin</th><th>Why</th><th>Status</th></tr>
+<tr><td>(none bundled)</td><td>Pack stays dependency-light</td><td>optional</td></tr>
+</table>
+<h2>MCP servers</h2>
+<p>Canonical list lives in <code>docs/INVENTORY.json</code>. Project stubs live in <code>.mcp.json</code>.</p>
+<p>When adding a server:</p>
+<ol>
+<li>Add the entry to <code>INVENTORY.json</code> with <code>id</code>, <code>url</code>, and <code>purpose</code>.</li>
+<li>Mirror the same URL in <code>.mcp.json</code>.</li>
+<li>Re-run <code>python3 scripts/verify.py</code> on the docs site repo (or your project&#x27;s check).</li>
+</ol>
+  </main>
+  <footer class="foot">
+    <p>Portable handoff pack for Claude Code and agent IDEs.</p>
+  </footer>
+</body>
+</html>

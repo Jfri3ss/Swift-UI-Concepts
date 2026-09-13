@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "pack": "claude-code-handoff",
+  "mcp_servers": [
+    {
+      "id": "filesystem-notes",
+      "url": "https://mcp.example.com/filesystem-notes",
+      "purpose": "Example stub — replace with a real MCP endpoint before production use",
+      "enabled_by_default": false
+    },
+    {
+      "id": "docs-search",
+      "url": "https://mcp.example.com/docs-search",
+      "purpose": "Example stub — documentation search MCP",
+      "enabled_by_default": false
+    }
+  ],
+  "skills": [
+    {
+      "id": "working-agreements",
+      "path": ".claude/skills/working-agreements/SKILL.md"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "claude-code-handoff",
+  "private": true,
+  "description": "Static Cloudflare Worker site for the Claude Code handoff pack",
+  "scripts": {
+    "build": "python3 scripts/build.py",
+    "verify": "python3 scripts/verify.py",
+    "deploy": "python3 scripts/build.py && wrangler deploy",
+    "dev": "python3 scripts/build.py && wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.34.0"
+  }
+}
