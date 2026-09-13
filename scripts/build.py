@@ -4,11 +4,10 @@
 from __future__ import annotations
 
 import html
-import json
 import re
 import shutil
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
 PACK = ROOT / "pack"
@@ -16,7 +15,6 @@ DIST = ROOT / "dist"
 SITE_CSS = "styles.css"
 
 # Pack markdown/docs that become browsable HTML pages.
-# Maps pack-relative path -> dist-relative HTML path (no leading slash).
 PAGE_MAP = {
     "README.md": "README.html",
     "CLAUDE.md": "CLAUDE.html",
@@ -26,19 +24,27 @@ PAGE_MAP = {
     "docs/SKILLS-AND-PLUGINS.md": "docs/SKILLS-AND-PLUGINS.html",
 }
 
+# Site-root relative destinations (no leading slash) for nav.
 NAV = [
-    ("Home", "/"),
-    ("README", "/README.html"),
-    ("CLAUDE", "/CLAUDE.html"),
-    ("AGENTS", "/AGENTS.html"),
-    ("Handoff", "/docs/HANDOFF.html"),
-    ("Skills", "/docs/SKILLS-AND-PLUGINS.html"),
-    ("Download zip", "/Claude-Code-Handoff.zip"),
+    ("Home", "index.html"),
+    ("README", "README.html"),
+    ("CLAUDE", "CLAUDE.html"),
+    ("AGENTS", "AGENTS.html"),
+    ("Handoff", "docs/HANDOFF.html"),
+    ("Skills", "docs/SKILLS-AND-PLUGINS.html"),
+    ("Download zip", "Claude-Code-Handoff.zip"),
 ]
 
 
-def md_to_html_fragment(text: str) -> str:
-    """Minimal Markdown → HTML for pack docs (headings, lists, code, tables, links)."""
+def href_from(from_file: str, to_file: str) -> str:
+    import os
+
+    start = str(PurePosixPath(from_file).parent)
+    return os.path.relpath(to_file, start=start or ".").replace("\\", "/")
+
+
+def md_to_html_fragment(text: str, *, from_file: str) -> str:
+    """Minimal Markdown → HTML for pack docs."""
     lines = text.splitlines()
     out: list[str] = []
     i = 0
@@ -67,10 +73,11 @@ def md_to_html_fragment(text: str) -> str:
             out.append("<table>")
             for ridx, row in enumerate(table_rows):
                 tag = "th" if ridx == 0 else "td"
-                # Skip separator row like |---|---|
                 if ridx == 1 and all(re.fullmatch(r":?-+:?", c.strip()) for c in row):
                     continue
-                cells = "".join(f"<{tag}>{inline_md(c.strip())}</{tag}>" for c in row)
+                cells = "".join(
+                    f"<{tag}>{inline_md(c.strip(), from_file=from_file)}</{tag}>" for c in row
+                )
                 out.append(f"<tr>{cells}</tr>")
             out.append("</table>")
         in_table = False
@@ -112,40 +119,37 @@ def md_to_html_fragment(text: str) -> str:
             table_rows.append(cells)
             i += 1
             continue
-        else:
-            close_table()
+        close_table()
 
         heading = re.match(r"^(#{1,4})\s+(.*)$", line)
         if heading:
             close_lists()
             level = len(heading.group(1))
-            out.append(f"<h{level}>{inline_md(heading.group(2))}</h{level}>")
+            out.append(f"<h{level}>{inline_md(heading.group(2), from_file=from_file)}</h{level}>")
             i += 1
             continue
 
         ul = re.match(r"^[-*]\s+(.*)$", line)
         if ul:
-            close_table()
             if in_ol:
                 out.append("</ol>")
                 in_ol = False
             if not in_ul:
                 out.append("<ul>")
                 in_ul = True
-            out.append(f"<li>{inline_md(ul.group(1))}</li>")
+            out.append(f"<li>{inline_md(ul.group(1), from_file=from_file)}</li>")
             i += 1
             continue
 
         ol = re.match(r"^\d+\.\s+(.*)$", line)
         if ol:
-            close_table()
             if in_ul:
                 out.append("</ul>")
                 in_ul = False
             if not in_ol:
                 out.append("<ol>")
                 in_ol = True
-            out.append(f"<li>{inline_md(ol.group(1))}</li>")
+            out.append(f"<li>{inline_md(ol.group(1), from_file=from_file)}</li>")
             i += 1
             continue
 
@@ -155,7 +159,7 @@ def md_to_html_fragment(text: str) -> str:
             continue
 
         close_lists()
-        out.append(f"<p>{inline_md(line)}</p>")
+        out.append(f"<p>{inline_md(line, from_file=from_file)}</p>")
         i += 1
 
     if in_code:
@@ -165,115 +169,84 @@ def md_to_html_fragment(text: str) -> str:
     return "\n".join(out)
 
 
-def inline_md(text: str) -> str:
-    """Escape then apply inline markdown, remapping .md links to .html pages."""
-
-    def link_repl(m: re.Match[str]) -> str:
-        label, href = m.group(1), m.group(2)
-        mapped = remap_href(href)
-        return f'<a href="{html.escape(mapped)}">{html.escape(label)}</a>'
-
-    # Protect code spans
-    parts: list[str] = []
-    last = 0
-    for m in re.finditer(r"`([^`]+)`", text):
-        parts.append(("text", text[last : m.start()]))
-        parts.append(("code", m.group(1)))
-        last = m.end()
-    parts.append(("text", text[last:]))
-
-    rendered: list[str] = []
-    for kind, value in parts:
-        if kind == "code":
-            rendered.append(f"<code>{html.escape(value)}</code>")
-            continue
-        chunk = html.escape(value)
-        # Unescape pattern targets carefully via working on original then escaping pieces
-        # Re-process from original non-escaped for links/bold/italic
-        tmp = value
-        tmp = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", link_repl, tmp)
-
-        def bold_repl(m: re.Match[str]) -> str:
-            return f"<strong>{html.escape(m.group(1))}</strong>"
-
-        def em_repl(m: re.Match[str]) -> str:
-            return f"<em>{html.escape(m.group(1))}</em>"
-
-        # If link_repl already produced HTML, avoid double-escaping by splitting
-        # Simpler path: rebuild from value with sequential transforms on escaped plaintext segments
-        # For robustness, redo from value:
-        def transform(s: str) -> str:
-            out_parts: list[str] = []
-            pos = 0
-            pattern = re.compile(
-                r"(\[([^\]]+)\]\(([^)]+)\))"
-                r"|(\*\*([^*]+)\*\*)"
-                r"|(\*([^*]+)\*)"
-            )
-            for m in pattern.finditer(s):
-                out_parts.append(html.escape(s[pos : m.start()]))
-                if m.group(1):
-                    out_parts.append(
-                        f'<a href="{html.escape(remap_href(m.group(3)))}">{html.escape(m.group(2))}</a>'
-                    )
-                elif m.group(4):
-                    out_parts.append(f"<strong>{html.escape(m.group(5))}</strong>")
-                elif m.group(6):
-                    out_parts.append(f"<em>{html.escape(m.group(7))}</em>")
-                pos = m.end()
-            out_parts.append(html.escape(s[pos:]))
-            return "".join(out_parts)
-
-        rendered.append(transform(value))
-    return "".join(rendered)
-
-
-def remap_href(href: str) -> str:
-    """Map pack markdown links to HTML site routes; keep external and json/zip."""
+def remap_href(href: str, *, from_file: str) -> str:
+    """Map pack markdown links to HTML site routes relative to from_file."""
     if href.startswith(("http://", "https://", "mailto:", "#")):
         return href
-    clean = href.split("#", 1)[0]
-    frag = ""
+    clean, _, frag_part = href.partition("#")
+    frag = f"#{frag_part}" if frag_part or href.endswith("#") else (f"#{frag_part}" if "#" in href else "")
     if "#" in href:
         frag = "#" + href.split("#", 1)[1]
-    # Normalize relative
+    else:
+        frag = ""
     norm = clean.lstrip("./")
+
+    target: str | None = None
     if norm in PAGE_MAP:
-        return "/" + PAGE_MAP[norm] + frag
-    # Relative from docs/
-    if norm.startswith("docs/") and norm in PAGE_MAP:
-        return "/" + PAGE_MAP[norm] + frag
-    # Same-folder docs links like HANDOFF.md from docs pages
-    alt = f"docs/{norm}"
-    if alt in PAGE_MAP:
-        return "/" + PAGE_MAP[alt] + frag
-    if norm.endswith(".md"):
-        # Generic .md → .html
-        return "/" + norm[:-3] + ".html" + frag
-    if norm.endswith(".json") or norm.endswith(".zip") or norm.endswith(".html"):
-        return "/" + norm + frag
-    if norm == "Claude-Code-Handoff.zip":
-        return "/Claude-Code-Handoff.zip"
-    return href
+        target = PAGE_MAP[norm]
+    elif norm.startswith("docs/") and norm in PAGE_MAP:
+        target = PAGE_MAP[norm]
+    else:
+        alt = f"docs/{norm}"
+        if alt in PAGE_MAP:
+            target = PAGE_MAP[alt]
+        elif norm.endswith(".md"):
+            target = norm[:-3] + ".html"
+        elif norm.endswith((".json", ".zip", ".html")):
+            target = norm
+        elif norm == "Claude-Code-Handoff.zip":
+            target = "Claude-Code-Handoff.zip"
+    if target is None:
+        return href
+    return href_from(from_file, target) + frag
 
 
-def page_shell(title: str, body: str, *, active: str | None = None) -> str:
+def inline_md(text: str, *, from_file: str) -> str:
+    out_parts: list[str] = []
+    pos = 0
+    pattern = re.compile(
+        r"(\[([^\]]+)\]\(([^)]+)\))"
+        r"|(\*\*([^*]+)\*\*)"
+        r"|(\*([^*]+)\*)"
+        r"|(`([^`]+)`)"
+    )
+    for m in pattern.finditer(text):
+        out_parts.append(html.escape(text[pos : m.start()]))
+        if m.group(1):
+            out_parts.append(
+                f'<a href="{html.escape(remap_href(m.group(3), from_file=from_file))}">{html.escape(m.group(2))}</a>'
+            )
+        elif m.group(4):
+            out_parts.append(f"<strong>{html.escape(m.group(5))}</strong>")
+        elif m.group(6):
+            out_parts.append(f"<em>{html.escape(m.group(7))}</em>")
+        elif m.group(8):
+            out_parts.append(f"<code>{html.escape(m.group(9))}</code>")
+        pos = m.end()
+    out_parts.append(html.escape(text[pos:]))
+    return "".join(out_parts)
+
+
+def page_shell(title: str, body: str, *, from_file: str, active: str | None = None) -> str:
     nav_html = []
-    for label, href in NAV:
-        cls = ' class="active"' if active == href else ""
-        nav_html.append(f'<a href="{href}"{cls}>{html.escape(label)}</a>')
+    for label, dest in NAV:
+        href = href_from(from_file, dest)
+        cls = ' class="active"' if active == dest else ""
+        nav_html.append(f'<a href="{html.escape(href)}"{cls}>{html.escape(label)}</a>')
+    css = href_from(from_file, SITE_CSS)
+    home = href_from(from_file, "index.html")
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>{html.escape(title)} — Claude Code Handoff</title>
-  <link rel="stylesheet" href="/{SITE_CSS}"/>
+  <link rel="stylesheet" href="{html.escape(css)}"/>
 </head>
 <body>
   <div class="bg"></div>
   <header class="top">
-    <a class="brand" href="/">Claude Code Handoff</a>
+    <a class="brand" href="{html.escape(home)}">Claude Code Handoff</a>
     <nav>{"".join(nav_html)}</nav>
   </header>
   <main class="doc">
@@ -290,13 +263,13 @@ def page_shell(title: str, body: str, *, active: str | None = None) -> str:
 def write_css(dest: Path) -> None:
     dest.write_text(
         """:root {
-  --ink: #1a2332;
-  --muted: #4a5a6a;
-  --paper: #f7f3eb;
-  --panel: rgba(255, 252, 246, 0.88);
-  --line: rgba(26, 35, 50, 0.12);
+  --ink: #15202b;
+  --muted: #3d4f5f;
+  --paper: #eef3f1;
+  --panel: rgba(255, 255, 255, 0.82);
+  --line: rgba(21, 32, 43, 0.12);
   --accent: #0b6e4f;
-  --accent-2: #c45c26;
+  --accent-2: #1d4e89;
   --display: "Fraunces", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --body: "Source Serif 4", "Iowan Old Style", Georgia, serif;
   --mono: "IBM Plex Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
@@ -315,11 +288,9 @@ body {
 .bg {
   position: fixed; inset: 0; z-index: -1;
   background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(11, 110, 79, 0.18), transparent 55%),
-    radial-gradient(900px 500px at 90% 0%, rgba(196, 92, 38, 0.16), transparent 50%),
-    radial-gradient(1200px 600px at 10% -10%, rgba(11, 110, 79, 0.18), transparent 55%),
-    radial-gradient(900px 500px at 90% 0%, rgba(196, 92, 38, 0.16), transparent 50%),
-    linear-gradient(165deg, #f7f3eb 0%, #ebe4d6 45%, #e2ece8 100%);
+    radial-gradient(1100px 560px at 8% -8%, rgba(11, 110, 79, 0.20), transparent 55%),
+    radial-gradient(900px 480px at 92% 0%, rgba(29, 78, 137, 0.16), transparent 52%),
+    linear-gradient(165deg, #eef3f1 0%, #e3ebe7 48%, #d9e4ef 100%);
 }
 .top {
   display: flex; flex-wrap: wrap; gap: 1rem 1.5rem;
@@ -327,7 +298,7 @@ body {
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(8px);
-  background: rgba(247, 243, 235, 0.7);
+  background: rgba(238, 243, 241, 0.72);
 }
 .brand {
   font-family: var(--display);
@@ -363,13 +334,13 @@ h2 { margin-top: 2rem; font-size: 1.35rem; }
 a { color: var(--accent); }
 code, pre { font-family: var(--mono); font-size: 0.9em; }
 code {
-  background: rgba(26, 35, 50, 0.06);
+  background: rgba(21, 32, 43, 0.06);
   padding: 0.1em 0.35em;
   border-radius: 3px;
 }
 pre {
-  background: #1a2332;
-  color: #f7f3eb;
+  background: #15202b;
+  color: #eef3f1;
   padding: 1rem 1.1rem;
   overflow-x: auto;
   border-radius: 4px;
@@ -452,46 +423,47 @@ th { background: rgba(11, 110, 79, 0.08); }
 
 
 def homepage() -> str:
-    body = """
+    from_file = "index.html"
+    body = f"""
   <section class="hero">
     <p class="brand-hero">Claude Code Handoff</p>
     <h1>A portable pack for clean agent handoffs</h1>
     <p class="lead">Drop-in CLAUDE.md, AGENTS.md, MCP inventory, skills, and a session handoff template — ready for Claude Code, Cursor, and teammates.</p>
     <div class="cta">
-      <a class="primary" href="/Claude-Code-Handoff.zip">Download zip</a>
-      <a class="secondary" href="/docs/HANDOFF.html">Read handoff guide</a>
+      <a class="primary" href="{href_from(from_file, 'Claude-Code-Handoff.zip')}">Download zip</a>
+      <a class="secondary" href="{href_from(from_file, 'docs/HANDOFF.html')}">Read handoff guide</a>
     </div>
     <div class="links">
       <h2>Browse the pack</h2>
       <ul>
-        <li><a href="/README.html">README</a></li>
-        <li><a href="/CLAUDE.html">CLAUDE.md</a></li>
-        <li><a href="/AGENTS.html">AGENTS.md</a></li>
-        <li><a href="/COPY-TO-DESKTOP.html">Copy to Desktop</a></li>
-        <li><a href="/docs/SKILLS-AND-PLUGINS.html">Skills &amp; plugins</a></li>
-        <li><a href="/docs/INVENTORY.json">INVENTORY.json</a></li>
+        <li><a href="{href_from(from_file, 'README.html')}">README</a></li>
+        <li><a href="{href_from(from_file, 'CLAUDE.html')}">CLAUDE.md</a></li>
+        <li><a href="{href_from(from_file, 'AGENTS.html')}">AGENTS.md</a></li>
+        <li><a href="{href_from(from_file, 'COPY-TO-DESKTOP.html')}">Copy to Desktop</a></li>
+        <li><a href="{href_from(from_file, 'docs/SKILLS-AND-PLUGINS.html')}">Skills &amp; plugins</a></li>
+        <li><a href="{href_from(from_file, 'docs/INVENTORY.json')}">INVENTORY.json</a></li>
       </ul>
     </div>
   </section>
 """
     nav_bits = []
-    for label, href in NAV:
-        cls = ' class="active"' if href == "/" else ""
-        nav_bits.append(f'<a href="{href}"{cls}>{html.escape(label)}</a>')
-    nav = "".join(nav_bits)
+    for label, dest in NAV:
+        href = href_from(from_file, dest)
+        cls = ' class="active"' if dest == "index.html" else ""
+        nav_bits.append(f'<a href="{html.escape(href)}"{cls}>{html.escape(label)}</a>')
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Claude Code Handoff</title>
-  <link rel="stylesheet" href="/{SITE_CSS}"/>
+  <link rel="stylesheet" href="{html.escape(href_from(from_file, SITE_CSS))}"/>
 </head>
 <body>
   <div class="bg"></div>
   <header class="top">
-    <a class="brand" href="/">Claude Code Handoff</a>
-    <nav>{nav}</nav>
+    <a class="brand" href="{html.escape(href_from(from_file, 'index.html'))}">Claude Code Handoff</a>
+    <nav>{"".join(nav_bits)}</nav>
   </header>
   <main class="hero-wrap">
 {body}
@@ -505,12 +477,13 @@ def homepage() -> str:
 
 
 def not_found_page() -> str:
-    body = """
+    from_file = "404.html"
+    body = f"""
     <h1>Page not found</h1>
     <p>That path is not part of the Claude Code Handoff site.</p>
-    <p><a href="/">Back to home</a> · <a href="/Claude-Code-Handoff.zip">Download the zip</a></p>
+    <p><a href="{href_from(from_file, 'index.html')}">Back to home</a> · <a href="{href_from(from_file, 'Claude-Code-Handoff.zip')}">Download the zip</a></p>
 """
-    return page_shell("Not found", body, active=None)
+    return page_shell("Not found", body, from_file=from_file, active=None)
 
 
 def build_zip(dest: Path) -> None:
@@ -538,8 +511,7 @@ def build() -> None:
     for src_rel, html_rel in PAGE_MAP.items():
         src = PACK / src_rel
         text = src.read_text(encoding="utf-8")
-        # Strip YAML front matter for skill-like md if present — pack pages don't use it except skill
-        fragment = md_to_html_fragment(text)
+        fragment = md_to_html_fragment(text, from_file=html_rel)
         title = src_rel
         for line in text.splitlines():
             if line.startswith("# "):
@@ -547,12 +519,12 @@ def build() -> None:
                 break
         out = DIST / html_rel
         out.parent.mkdir(parents=True, exist_ok=True)
-        active = "/" + html_rel
-        out.write_text(page_shell(title, fragment, active=active), encoding="utf-8")
+        out.write_text(
+            page_shell(title, fragment, from_file=html_rel, active=html_rel),
+            encoding="utf-8",
+        )
 
-    # Copy inventory JSON into dist for browsing/download
     shutil.copy2(PACK / "docs" / "INVENTORY.json", DIST / "docs" / "INVENTORY.json")
-
     build_zip(DIST / "Claude-Code-Handoff.zip")
     print(f"Built site → {DIST}")
 
